@@ -1,89 +1,101 @@
-require_relative "../lib/paradox"
+require_relative "./lib/paradox"
+require "active_support"
 
 class Country
   attr_reader :tag, :node
   def initialize(tag, node)
     @tag = tag
     @node = node
+
+  end
+  def property_list
+    ["capped_development" ,"realm_development", "treasury", "base_tax", "manpower", "max_manpower", "sailors", "max_sailors", "stability", "prestige", "forts", "num_of_cities", "num_of_allies", "average_effective_unrest", "average_autonomy", "average_home_autonomy", "total_war_worth", "powers", "inflation", "institutions"]
   end
 
-  def primary_culture
-    @primary_culture ||= @node["primary_culture"]
+  def sub_unit
+    @node["sub_unit"]
   end
 
-  def accepted_cultures
-    @accepted_cultures ||= @node.find_all("accepted_culture")
+  def army
+    @node.find_all("army").map{|n| n.find_all("regiment")}.flatten(1).map{|r| {type: r["type"]}}
   end
 
-  def government_rank
-    @government_rank ||= @node["government_rank"]
+  def navy
+    @node.find_all("navy").map{|n| n.find_all("ship")}.flatten(1).map{|s| {type: s["type"]}}
   end
 
-  def institutions
-    @institutions ||= @node["institutions"]
+  def navy_by_type
+    @node.find_all("navy").map{|n| n.find_all("ship")}.flatten(1).group_by{|s| s["type"]}.map{|t, s| {t => s.count}}
   end
 
-  def technology_group
-    @technology_group ||= @node["technology_group"]
+  def unit_count(type)
+    army.select{ |r| r[:type] == sub_unit[type]}.count
   end
 
-  def num_of_cities
-    @num_of_cities ||= @node["num_of_cities"].to_i
+  def fleet_count(type)
+    navy.select{ |r| r[:type] == sub_unit[type]}.count
   end
 
-  def idea_groups
-    @active_idea_groups ||= @node["active_idea_groups"].enum_for(:each).to_a
+  def infantry_count
+    unit_count("infantry")
+  end
+
+  def cavalry_count
+    unit_count("cavalry")
+  end
+
+  def artillery_count
+    unit_count("artillery")
+  end
+
+  def take_property(property)
+    @node[property]
+  end
+
+  def income
+    take_property("ledger")["lastmonthincome"]
+  end
+
+  def expense
+    take_property("ledger")["lastmonthexpense"]
+  end
+
+  def balance
+    income - expense
+  end
+
+  def subjects_tags
+    take_property["subjects"]
+  end
+
+  def subjects
+    human_subjects.select{ |tag, _| subjects_tags.include?(tag) }
+  end
+
+  def technology
+    @node["technology"].to_h.map{ |k,v| {k => v} }
+  end
+
+  def pl
+    property_list.map{ |p| {p => take_property(p) }}
+  end
+
+  def to_out
+    { "tag" => @tag,
+      "income" => income,
+      "expense" => expense,
+      "balance" => balance,
+      "technology" => technology, 
+      "army" => army.count,
+      "infantry" => infantry_count,
+      "cavalry" => cavalry_count,
+      "artillery" => artillery_count,
+      "navy" => navy_by_type}
+    .merge(pl.reduce({}, :merge))
   end
 
   def to_s
     "Country<#{@tag}>"
-  end
-  alias_method :to_s, :inspect
-end
-
-class Province
-  attr_reader :id, :node
-  def initialize(id, node)
-    @id = id
-    @node = node
-  end
-
-  def city?
-    @node["is_city"]
-  end
-
-  def development
-    (@node["base_tax"] || 0) +
-    (@node["base_production"] || 0) +
-    (@node["base_manpower"] || 0)
-  end
-
-  def owner
-    @node["owner"]
-  end
-
-  def culture
-    @node["culture"]
-  end
-
-  def local_autonomy
-    @node["local_autonomy"] || 0
-  end
-
-  def min_autonomy
-    @node["min_autonomy"] || 0
-  end
-
-  def effective_autonomy
-    [local_autonomy, min_autonomy].max
-  end
-
-  def buildings
-    (@node["buildings"] || {}).keys
-  end
-
-  def to_s
-    "Province<#{@id}>"
   end
   alias_method :to_s, :inspect
 end
@@ -104,79 +116,25 @@ class EU4Save
     end
   end
 
-  def provinces
-    @provinces ||= begin
-      @data["provinces"]
-        .enum_for(:each)
-        .map{|id, node| [-id, Province.new(-id, node)] }
-        .to_h
-    end
-  end
-
-  def institutions
-    @institutions ||= @data["institutions"] # => [1, 1, 0, 0, 0, 0, 0]
-  end
-
-  def institutions_penalties
-    @institutions_penalties ||= @data["institutions_penalties"] # => [0.5, 0.07, 0.0, 0.0, 0.0, 0.0, 0.0]
-  end
-
-  def date
-    @data["date"]
-  end
-
-  def player_tag
-    @player_tag ||= @data["countries"].enum_for(:each).find{|k,v| v["human"]}.first
-  end
-
   def humans
-    @humans ||= @data["countries"].select{ |k,v| v.node["human"] }
+    @humans = countries.select{ |k,v| v.node["human"] || k == "BUR" }
   end
 
-  def property_list
-    ["capped_development" ,"realm_development", "treasury", "base_tax", "manpower", "max_manpower", "sailors", "max_sailors", "stability", "prestige", "forts", "num_of_controlled_cities", "num_of_allies", "average_effective_unrest", "average_autonomy", "average_home_autonomy", "total_war_worth", "technology"]
+  def human_subjects_tags
+    humans.map{ |tag, country| country.node["subjects"] }.flatten(1).compact
   end
 
-  def take_property(humans, property)
-    humans.map{ |k, v| {k => v.node[property]}}
+  def human_subjects
+   @human_subjects ||= countries.select{ |k, v| human_subjects_tags.include?(k) }
   end
 
-
-  def print_stats(humans)
-    property_list.map do |property|
-      {property => take_property(humans, property)}
-    end
+  def subject_of_human(human_tag)
+    human_subjects.select{ |k, v| v.node["overlord"] == human_tag }
   end
 
-  USELESS_DATA = ["mothballed_forts", "mil_spent_indexed", "dip_spend_indexed", "adm_spend_indexed", "losses", "assigned_estates", "ai"]
-
-  def except(s, *keys)
-    s.dup.except!(s, *keys)
-  end
-
-  def except!(s, *keys)
-    keys.each { |key| s.delete(key) }
-    s
-  end
-
-  def navy(humans)
-    humans.map{ |k, v| {k => v.node["navy"].count} }
-  end
-
-  def aggressive_expansion
-    @active_relations ||= begin
-      map = {}
-      @data["countries"].each do |tag, country|
-        next unless country["active_relations"]
-        country["active_relations"].each do |tag2, relations|
-          relations.find_all("opinion").each do |opinion|
-            next unless opinion["modifier"] == "aggressive_expansion"
-            map[tag2] ||= {}
-            map[tag2][tag] = -opinion["current_opinion"]
-          end
-        end
-      end
-      map
+  def stats
+    humans.flat_map do |tag, c|
+      [c.to_out] + subject_of_human(tag).map{ |_, x| x.to_out }
     end
   end
 

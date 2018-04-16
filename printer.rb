@@ -18,6 +18,18 @@ class Printer
     save = EU4Save.new(gamestate)
     save.stats.to_csv(path)
   end
+
+  def raw(gamestate, path)
+    save = EU4Save.new(gamestate)
+    File.write(path, save)
+  end
+
+  def print_tag(gamestate, tag, path)
+    save = EU4Save.new(gamestate)
+    tag = save.countries.select{ |t, _| t == tag}.first
+    File.write(path, tag)
+  end
+
 end
 
 Printer.new.print(*ARGV)

@@ -117,7 +117,7 @@ class EU4Save
   end
 
   def humans
-    @humans = countries.select{ |k,v| v.node["human"] || k == "BUR" }
+    @humans = countries.select{ |k,v| v.node["human"] }
   end
 
   def human_subjects_tags

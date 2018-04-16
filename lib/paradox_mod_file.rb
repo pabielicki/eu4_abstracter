@@ -88,7 +88,7 @@ class ParadoxModFile
             ">=" => :ge,
             "==" => :eqeq,
           }[s[1]])
-        elsif s.scan(/((?:_|\.|\-|\–|'|’|\[|\]|:|@|\?|\p{Letter}|\p{Digit})+)/)
+        elsif s.scan(/((?:_|\.|\-|\–|'|’|\[|\]|:|@|\?|\+|\p{Letter}|\p{Digit})+)/)
           if s[1] == "yes"
             @tokens << true
           elsif s[1] == "no"
@@ -96,8 +96,9 @@ class ParadoxModFile
           else
             @tokens << s[1]
           end
-        elsif s.scan(/"([^"\\]*)"/)
+        elsif s.scan(/"((?:[^"\\]|\\n)*)"/)
           # Is there ever any weird escaping here?
+          # EU4 saves have some "Italian Aristocracy: §G+25.0%§!\n"
           @tokens << s[1]
         elsif s.scan(/"(([^"\\]|\\"|\\\\)*)"/)
           # There is some escaping
@@ -107,8 +108,8 @@ class ParadoxModFile
         elsif s.scan(/,/)
           # Seen in some array defintions, pass
         else
-          require "pry"
-          binding.pry
+          # require "pry"
+          # binding.pry
           raise "Tokenizer error in #{path || 'passed string'} at #{s.pos}: `#{s.rest[0,20]}...'"
         end
       end

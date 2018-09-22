@@ -13,7 +13,7 @@ class TimelapseVisualization < ParadoxGame
 
   def initialize(save_game, *roots)
     @world = WorldHistory.new(save_game)
-    @date = Date.new(1462, 11, 23)
+    @date = Date.new(1564, 1, 1)
     super(*roots)
   end
 
@@ -43,10 +43,14 @@ class TimelapseVisualization < ParadoxGame
 
   # Dynamic countries (colonial nations) have their color only in save file
   # regular countries have it only in game data
-  def country_color_for(tag)
+  def human_color_for(tag)
     @world.human_color(tag) || country_colors[tag]
+    # @world.country_color(tag) || country_colors[tag]
   end
-
+  def country_color_for(tag)
+    @world.country_color(tag) || country_colors[tag]
+    # @world.country_color(tag) || country_colors[tag]
+  end
   def generate_maps_for_date!(date)
     # let's start with religions
     # province_map = Hash[
@@ -58,15 +62,31 @@ class TimelapseVisualization < ParadoxGame
     # generate_map_image(build_color_map(province_map)).write("campaign/religion-#{date.year}-#{date.month}-#{date.day}.png")
 
     # and owner
+    # humans
     province_map = Hash[
       land_province_ids.map{|id|
         owner = @world.province_state(id, date)["owner"]
         fake_owner = @world.province_state(id, date)["fake_owner"]
+        cores = @world.province_state(id, date)["cores"]
         o = fake_owner ? fake_owner : owner
+        o =  cores.include?(owner) ? owner : o
+        [id, human_color_for(o)]
+      }
+    ]
+    generate_map_image(build_color_map(province_map)).write("/home/paveu/Desktop/maps/humans-#{date.year}-#{date.month}-#{date.day}.png")
+    # all
+    province_map = Hash[
+      land_province_ids.map{|id|
+        owner = @world.province_state(id, date)["owner"]
+        fake_owner = @world.province_state(id, date)["fake_owner"]
+        cores = @world.province_state(id, date)["cores"]
+        o = fake_owner ? fake_owner : owner
+        o =  cores.include?(owner) ? owner : o
         [id, country_color_for(o)]
       }
     ]
     generate_map_image(build_color_map(province_map)).write("/home/paveu/Desktop/maps/countries-#{date.year}-#{date.month}-#{date.day}.png")
+ 
   end
 
   def generate_maps!
@@ -81,4 +101,4 @@ class TimelapseVisualization < ParadoxGame
 end
 
 vis = TimelapseVisualization.new(*ARGV)
-vis.generate_maps!
+vis.generate_map!

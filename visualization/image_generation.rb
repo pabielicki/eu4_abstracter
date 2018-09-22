@@ -1,5 +1,5 @@
 require "RMagick"
-require_relative "../visualization_hoi4/blob_midpoint"
+require_relative "./blob_midpoint"
 
 module ImageGeneration
   def province_definitions

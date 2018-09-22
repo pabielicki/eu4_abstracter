@@ -79,7 +79,16 @@ class WorldHistory
   end
 
   def color(tag)
-    @data["countries"][tag]["colors"]["map_color"] 
+    defined = {
+      "PER" => [54, 117, 136],
+      "QNG" => [166,124,0],
+      "PRU" => [95,111,124]
+    }
+    if defined[tag]
+      defined[tag]
+    else
+      @data["countries"][tag]["colors"]["map_color"]
+    end
   end
 
   def overlord_color(tag)

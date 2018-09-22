@@ -43,6 +43,10 @@ class Army
     unit_count("artillery")
   end
 
+  def army_prof
+    @node['army_professionalism']
+  end
+
   def print!
     {
       "army" => land.count,
@@ -51,6 +55,7 @@ class Army
       "artillery" => artillery_count,
       "manpower" => @node['manpower'],
       "max_manpower" => @node['max_manpower'],
+      "army_professionalism" => army_prof,
       "navy" => navy_by_type,
       "sailors" => @node['sailors'],
       "max_sailors" => @node['max_sailors'],

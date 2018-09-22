@@ -14,7 +14,9 @@ class Array
 end
 
 class Printer
-  def print(gamestate, path)
+
+  def print_all(gamestate, path)
+    p "All"
     save = EU4Save.new(gamestate)
     save.stats.to_csv(path)
   end
@@ -25,11 +27,16 @@ class Printer
   end
 
   def print_tag(gamestate, tag, path)
+    p "Tag: #{tag.first}" 
     save = EU4Save.new(gamestate)
     tag = save.countries.select{ |t, _| t == tag}.first
     File.write(path, tag)
   end
 
+  def tag_or_all(gamestate, path, *tag)
+    tag.first ? print_tag(gamestate, tag.first, path) : print_all(gamestate, path)
+  end
+
 end
 
-Printer.new.print(*ARGV)
+Printer.new.tag_or_all(*ARGV)

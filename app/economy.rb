@@ -12,12 +12,35 @@ class Economy
     @node['ledger']['lastmonthincome']
   end
 
+  def income_table
+    @node['ledger']['income']
+  end
+  def tax
+    income_table ? income_table[0] : 0
+  end
+
+  def production
+    income_table ? income_table[1] : 0
+  end
+
+  def trade
+    income_table ? income_table[2] : 0
+  end
+
+  def gold
+    income_table ? income_table[3] : 0
+  end
+
+  def stable_income
+    (tax + production + trade + gold).round(3)
+  end
+
   def expense
     @node['ledger']['lastmonthexpense']
   end
 
   def balance
-    income - expense
+    stable_income.to_f - expense.to_f
   end
 
   def technology
@@ -79,6 +102,14 @@ class Economy
     c.first
   end
 
+  def corruption
+    @node['corruption']
+  end
+
+  def ideas
+    @node['active_idea_groups'].to_h.map{ |k,v| {k => v} }
+  end
+
   def loans_amount
     a = loans.flat_map do |_, ls|
       if ls.class.to_s == "Array"
@@ -96,11 +127,14 @@ class Economy
       'realm_development' => realm_development,
       'treasury' => treasury,
       'income' => income,
+      'stable_income' => stable_income,
       'expense' => expense,
       'balance' => balance,
       'loans_count' => loans_count,
       'loans_amount' => loans_amount,
       'inflation' => inflation,
+      'corruption' => corruption,
+      'ideas' => ideas,
       'stability' => stability,
       'unrest' => unrest,
       'num_of_cities' => num_of_cities,

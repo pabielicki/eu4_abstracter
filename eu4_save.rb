@@ -19,7 +19,7 @@ class EU4Save
   end
 
   def humans
-    @humans = countries.select{ |k,v| v.node["human"] }
+    @humans ||= countries.select{ |k,v| v.node["was_player"] }
   end
 
   def human_subjects_tags

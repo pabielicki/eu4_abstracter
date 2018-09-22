@@ -3,6 +3,7 @@ module GameMap
     @default_map ||= parse("map/default.map")
   end
 
+
   def land_province_ids
     @land_province_ids ||= begin
       (1...default_map["max_provinces"]).to_a - sea_province_ids
